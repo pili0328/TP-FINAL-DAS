@@ -50,6 +50,11 @@ namespace Controladora
             reposProducto.Modificar(producto);
         }
 
+        public void EliminarProducto(int productoId)
+        {
+            reposProducto.Eliminar(productoId);
+        }
+
         public List<StockSucursal> ConsultarDisponibilidad(int productoId)
         {
             return reposProducto.GetStock(productoId);
@@ -68,7 +73,7 @@ namespace Controladora
             var listaRanking = todasLasVentas
                 .SelectMany(v => v.Detalles)
                 .GroupBy(d => d.Producto.Nombre)
-                .Select(grupo => new ReporteProducto 
+                .Select(grupo => new ReporteProducto
                 {
                     Nombre = grupo.Key,
                     Cantidad = grupo.Sum(x => x.Cantidad)
