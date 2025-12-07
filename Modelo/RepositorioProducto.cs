@@ -35,7 +35,16 @@ namespace Modelo
 
         public void Modificar(Producto producto)
         {
-            contexto.Productos.Update(producto);
+            var productoEnMemoria = contexto.Productos.Local.FirstOrDefault(p => p.Id == producto.Id);
+
+
+            if (productoEnMemoria != null)
+            {
+               contexto.Entry(productoEnMemoria).State = EntityState.Detached;
+            }
+
+            contexto.Entry(producto).State = EntityState.Modified;
+
             contexto.SaveChanges();
         }
 
@@ -51,7 +60,7 @@ namespace Modelo
 
         public List<StockSucursal> GetStock(int productoId)
         {
-            return contexto.StockSucursal
+            return contexto.StockSucursales
                 .Include(s => s.Sucursal)
                 .Where(s => s.ProductoId == productoId)
                 .ToList();

@@ -1,43 +1,63 @@
-using Controladora;
-using Entidades;
+﻿using Controladora;
+using Modelo;
+using static Entidades.Producto;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static Entidades.Cliente;
+using Entidades;
 
 namespace Vista
 {
     public partial class FormProductos : Form
     {
-        private ControladoraProducto controlProductos;
+        private ControladoraProducto controladora;
         private int? idProductoSeleccionado = null;
+        private Context context;
 
         public FormProductos()
         {
-            controlProductos = new ControladoraProducto();
             InitializeComponent();
+            controladora = new ControladoraProducto();
+            context = new Context();
         }
 
-        private void CargarCombos()
+        private void CargarComboCategorias()
         {
-            List<Sucursal> sucursales = new List<Sucursal>();
-            cbSucursal.DataSource = sucursales;
-
-            List<Categoria> categorias = new List<Categoria>();
-            cbCategoria.DataSource = categorias;
+            cmbCategoria.DataSource = null;
+            cmbCategoria.DataSource = context.Categorias.ToList();
+            cmbCategoria.DisplayMember = "Nombre";
+            cmbCategoria.ValueMember = "Id";
         }
 
         private void CargarGrilla()
         {
             dgvProductos.DataSource = null;
-            dgvProductos.DataSource = controlProductos.ListarProductos();
+            dgvProductos.DataSource = controladora.ListarProductos();
+            if (dgvProductos.Columns["CategoriaId"] != null)
+            {
+                dgvProductos.Columns["CategoriaId"].Visible = false;
+            }
+
+        }
+
+
+
+        private void lblCodigo_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void FormProductos_Load(object sender, EventArgs e)
+        {
+            CargarComboCategorias();
+            CargarGrilla();
+            LimpiarFormulario();
         }
 
         private void LimpiarFormulario()
@@ -46,128 +66,111 @@ namespace Vista
             txtNombre.Text = "";
             txtDescripcion.Text = "";
             txtPrecio.Text = "";
-            cbCategoria.SelectedItem = null;
+            txtCantidad.Text = "";
+            txtCategoria.Text = "";
 
-            cbSucursal.SelectedItem = null;
-            txtStockSucursal.Text = "";
+            if (cmbCategoria.Items.Count > 0) cmbCategoria.SelectedIndex = 0;
 
-            idProductoSeleccionado = null; // Reseteamos selección
+            idProductoSeleccionado = null;
         }
 
-        private void FormProductos_Load(object sender, EventArgs e)
+        private void btnCategoria_Click(object sender, EventArgs e)
         {
-            CargarCombos();
-            CargarGrilla();
-            LimpiarFormulario();
+            if (string.IsNullOrWhiteSpace(txtCategoria.Text)) return;
+
+            try
+            {
+                Categoria nuevaCat = new Categoria { Nombre = txtCategoria.Text };
+
+                context.Categorias.Add(nuevaCat);
+                context.SaveChanges();
+
+                CargarComboCategorias();
+                cmbCategoria.SelectedValue = nuevaCat.Id;
+
+                txtCategoria.Text = "";
+                MessageBox.Show("Categoría añadida.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al añadir categoría: " + ex.Message);
+            }
         }
-
-
-
 
         private void btnAgregar_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtNombre.Text) || string.IsNullOrWhiteSpace(txtCodigo.Text))
+            if (string.IsNullOrWhiteSpace(txtNombre.Text) || string.IsNullOrWhiteSpace(txtPrecio.Text))
             {
-                MessageBox.Show("Por favor complete Nombre y codigo.");
+                MessageBox.Show("Complete los campos obligatorios.");
                 return;
+            }
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio))
+            {
+                MessageBox.Show("Precio inválido."); return;
+            }
+
+            if (!int.TryParse(txtCantidad.Text, out int cantidad))
+            {
+                MessageBox.Show("Cantidad inválida."); return;
             }
 
             try
             {
-                Producto producto = new Producto();
-                producto.Codigo = txtCodigo.Text;
-                producto.Nombre = txtNombre.Text;
-                producto.Descripcion = txtDescripcion.Text;
-                producto.Precio = decimal.Parse(txtPrecio.Text);
-                producto.Categoria = (Categoria)cbCategoria.SelectedItem;
+                Producto prod = new Producto();
+                prod.Codigo = txtCodigo.Text;
+                prod.Nombre = txtNombre.Text;
+                prod.Descripcion = txtDescripcion.Text;
+                prod.Precio = precio;
+                prod.Cantidad = cantidad;
 
-                producto.Sucursal = (Sucursal)cbSucursal.SelectedItem;
-                producto.StockSucursales.Add(new StockSucursal
-                {
-                    SucursalId = int.Parse(cbSucursal.SelectedValue.ToString()),
-                    Cantidad = int.Parse(txtStockSucursal.Text),
-                    ProductoId = producto.Id
-                });
+                prod.CategoriaId = (int)cmbCategoria.SelectedValue;
+  
 
-                controlProductos.CrearProducto(producto);
 
-                MessageBox.Show("Producto guardado con éxito.");
+                controladora.CrearProducto(prod);
 
+                MessageBox.Show("Producto agregado.");
                 CargarGrilla();
                 LimpiarFormulario();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("ERROR REAL: " + ex.InnerException?.Message);
-                // MessageBox.Show("Error al guardar: " + ex.Message);
+                MessageBox.Show("Error: " + ex.Message);
             }
+
+
+
         }
 
         private void btnModificar_Click(object sender, EventArgs e)
         {
             if (idProductoSeleccionado == null)
             {
-                MessageBox.Show("Por favor, seleccione un producto para modificar.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtNombre.Text) || string.IsNullOrWhiteSpace(txtCodigo.Text))
-            {
-                MessageBox.Show("Nombre y código son obligatorios.");
+                MessageBox.Show("Seleccione un producto de la grilla.");
                 return;
             }
 
             try
             {
-                // 1) Traer el producto real desde la base
-                var productoEditado = controlProductos.ObtenerPorId((int)idProductoSeleccionado);
+                Producto prod = new Producto();
+                prod.Id = (int)idProductoSeleccionado;
+                prod.Codigo = txtCodigo.Text;
+                prod.Nombre = txtNombre.Text;
+                prod.Descripcion = txtDescripcion.Text;
+                prod.Precio = decimal.Parse(txtPrecio.Text);
+                prod.CategoriaId = (int)cmbCategoria.SelectedValue;
+                prod.Cantidad = int.Parse(txtCantidad.Text);
 
-                if (productoEditado == null)
-                {
-                    MessageBox.Show("No se encontró el producto en la base.");
-                    return;
-                }
+                controladora.ActualizarProducto(prod);
 
-                // 2) Actualizar datos básicos
-                productoEditado.Codigo = txtCodigo.Text;
-                productoEditado.Nombre = txtNombre.Text;
-                productoEditado.Precio = decimal.Parse(txtPrecio.Text);
-                productoEditado.Categoria = (Categoria)cbCategoria.SelectedItem;
-
-                // 3) Modificar / agregar stock
-                int sucursalId = int.Parse(cbSucursal.SelectedValue.ToString());
-                int cantidad = int.Parse(txtStockSucursal.Text);
-
-                var stockExistente = productoEditado.StockSucursales
-                    .FirstOrDefault(s => s.SucursalId == sucursalId);
-
-                if (stockExistente != null)
-                {
-                    // modificar
-                    stockExistente.Cantidad = cantidad;
-                }
-                else
-                {
-                    // agregar nuevo registro de stock
-                    productoEditado.StockSucursales.Add(new StockSucursal
-                    {
-                        SucursalId = sucursalId,
-                        Cantidad = cantidad,
-                        ProductoId = productoEditado.Id
-                    });
-                }
-
-                // 4) Guardar cambios
-                controlProductos.ActualizarProducto(productoEditado);
-
-                MessageBox.Show("Producto modificado correctamente.");
-
+                MessageBox.Show("Producto modificado.");
                 CargarGrilla();
                 LimpiarFormulario();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al modificar: " + ex.Message);
+                MessageBox.Show("Error: " + ex.Message);
             }
         }
 
@@ -175,77 +178,47 @@ namespace Vista
         {
             if (idProductoSeleccionado == null)
             {
-                MessageBox.Show("Seleccione un producto para eliminar.");
+                MessageBox.Show("Seleccione un producto.");
                 return;
             }
 
-            try
+            var respuesta = MessageBox.Show("¿Seguro de eliminar?", "Confirmar", MessageBoxButtons.YesNo);
+
+            if (respuesta == DialogResult.Yes)
             {
-                // Traer el producto real para eliminarle los stocks
-                var producto = controlProductos.ObtenerPorId((int)idProductoSeleccionado);
-
-                if (producto != null)
+                try
                 {
-                    producto.StockSucursales.Clear(); // quitar stocks antes de eliminar
-                    controlProductos.ActualizarProducto(producto);
+                    controladora.EliminarProducto((int)idProductoSeleccionado);
+
+                    MessageBox.Show("Eliminado.");
+                    CargarGrilla();
+                    LimpiarFormulario();
                 }
-
-                controlProductos.EliminarProducto((int)idProductoSeleccionado);
-
-                MessageBox.Show("Producto eliminado.");
-
-                CargarGrilla();
-                LimpiarFormulario();
-            }
-            catch (Exception ex)
-            {
-                if (ex.InnerException != null && ex.InnerException.Message.Contains("REFERENCE"))
+                catch (Exception ex)
                 {
-                    MessageBox.Show("No se puede eliminar este producto.");
-                }
-                else
-                {
-                    MessageBox.Show("Error al eliminar: " + ex.Message);
+                    MessageBox.Show("Error: " + ex.Message);
                 }
             }
-
         }
 
         private void dgvProductos_SelectionChanged(object sender, EventArgs e)
         {
-            if (dgvProductos.CurrentRow == null)
-                return;
+            if (dgvProductos.CurrentRow == null) return;
 
-            var productoRow = (Producto)dgvProductos.CurrentRow.DataBoundItem;
-            if (productoRow == null)
-                return;
+            var prod = (Producto)dgvProductos.CurrentRow.DataBoundItem;
 
-            // 👉 Traer el producto real con Includes
-            var productoSeleccionado = controlProductos.ObtenerPorId(productoRow.Id);
+            if (prod == null) return;
 
-            if (productoSeleccionado == null)
-                return;
+            txtCodigo.Text = prod.Codigo;
+            txtNombre.Text = prod.Nombre;
+            txtDescripcion.Text = prod.Descripcion;
+            txtPrecio.Text = prod.Precio.ToString();
+            txtCantidad.Text = prod.Cantidad.ToString(); 
 
-            // --- Datos básicos ---
-            txtCodigo.Text = productoSeleccionado.Codigo;
-            txtNombre.Text = productoSeleccionado.Nombre;
-            txtPrecio.Text = productoSeleccionado.Precio.ToString();
-            cbCategoria.SelectedItem = productoSeleccionado.Categoria;
+            cmbCategoria.SelectedValue = prod.CategoriaId;
 
-            idProductoSeleccionado = productoSeleccionado.Id;
-
-            // --- STOCK --- (si tenés seleccionada una sucursal en el ComboBox)
-            if (cbSucursal.SelectedValue != null)
-            {
-                int sucursalId = int.Parse(cbSucursal.SelectedValue.ToString());
-
-                var stock = productoSeleccionado.StockSucursales
-                    .FirstOrDefault(s => s.SucursalId == sucursalId);
-
-                txtStockSucursal.Text = stock?.Cantidad.ToString() ?? "0";
-            }
+            idProductoSeleccionado = prod.Id;
         }
-
-      
     }
 }
+

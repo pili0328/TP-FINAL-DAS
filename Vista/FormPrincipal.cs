@@ -36,5 +36,16 @@ namespace Vista
         {
 
         }
+
+        private void btnGestionStock_Click(object sender, EventArgs e)
+        {
+            FormSucursal frmSucursal = new FormSucursal();
+            frmSucursal.ShowDialog();
+        }
+
+        private void btnSalir_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
     }
 }

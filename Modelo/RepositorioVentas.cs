@@ -12,10 +12,10 @@ namespace Modelo
     {
         private Context context;
         
-        public RepositorioVentas(Context context)
+        public RepositorioVentas(Context contextRecibido)
         
         {
-            context = new Context();
+            context = contextRecibido;
         }
 
         public IReadOnlyCollection<Venta> ListarVentas()
@@ -27,7 +27,7 @@ namespace Modelo
         {
             foreach (var detalle in venta.Detalles)
             {
-                var stock = context.StockSucursal
+                var stock = context.StockSucursales
                     .FirstOrDefault(s => s.ProductoId == detalle.ProductoId && s.SucursalId == venta.SucursalId);
 
                 if (stock == null || stock.Cantidad < detalle.Cantidad)
@@ -53,14 +53,17 @@ namespace Modelo
             context.SaveChanges();
         }
 
-        public List<Venta> ObtenerVentaPorPeriodo(DateTime start, DateTime end) // GetVentasByPeriod
+        public List<Venta> ObtenerVentaPorPeriodo(DateTime inicio, DateTime fin) 
         {
             return context.Ventas
-                .Include(v => v.Cliente)
-                .Include(v => v.Vendedor)
-                .Include(v => v.Sucursal)
-                .Where(v => v.Fecha >= start && v.Fecha <= end)
-                .ToList();
+            .Include(v => v.Cliente)
+            .Include(v => v.Vendedor)
+            .Include(v => v.Sucursal)
+
+            .Where(v => v.Fecha.Date >= inicio.Date && v.Fecha.Date <= fin.Date)
+
+            .OrderBy(v => v.Fecha)
+            .ToList();
         }
 
         public List<Venta> ObtenerVenta()

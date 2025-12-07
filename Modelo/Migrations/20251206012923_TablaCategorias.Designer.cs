@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Modelo;
 
@@ -11,9 +12,11 @@ using Modelo;
 namespace Modelo.Migrations
 {
     [DbContext(typeof(Context))]
-    partial class ContextModelSnapshot : ModelSnapshot
+    [Migration("20251206012923_TablaCategorias")]
+    partial class TablaCategorias
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +39,7 @@ namespace Modelo.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categoria", (string)null);
+                    b.ToTable("Categorias");
                 });
 
             modelBuilder.Entity("Entidades.Cliente", b =>
@@ -99,7 +102,7 @@ namespace Modelo.Migrations
 
                     b.HasIndex("VentaId");
 
-                    b.ToTable("Detalle");
+                    b.ToTable("DetalleVenta");
                 });
 
             modelBuilder.Entity("Entidades.Producto", b =>
@@ -109,6 +112,9 @@ namespace Modelo.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Cantidad")
                         .HasColumnType("int");
@@ -161,7 +167,7 @@ namespace Modelo.Migrations
 
                     b.HasIndex("SucursalId");
 
-                    b.ToTable("StockSucursales");
+                    b.ToTable("StockSucursal");
                 });
 
             modelBuilder.Entity("Entidades.Sucursal", b =>
@@ -182,7 +188,7 @@ namespace Modelo.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Sucursales");
+                    b.ToTable("Sucursal");
                 });
 
             modelBuilder.Entity("Entidades.Vendedor", b =>
@@ -266,7 +272,7 @@ namespace Modelo.Migrations
             modelBuilder.Entity("Entidades.Producto", b =>
                 {
                     b.HasOne("Entidades.Categoria", "Categoria")
-                        .WithMany()
+                        .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -318,6 +324,11 @@ namespace Modelo.Migrations
                     b.Navigation("Sucursal");
 
                     b.Navigation("Vendedor");
+                });
+
+            modelBuilder.Entity("Entidades.Categoria", b =>
+                {
+                    b.Navigation("Productos");
                 });
 
             modelBuilder.Entity("Entidades.Cliente", b =>
