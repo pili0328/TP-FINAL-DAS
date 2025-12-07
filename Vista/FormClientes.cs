@@ -37,6 +37,17 @@ namespace Vista
             {
                 dgvCliente.Columns["Compras"].Visible = false;
             }
+
+            if (dgvCliente.Columns["CuentaCorriente"] != null)
+            {
+                dgvCliente.Columns["CuentaCorriente"].Visible = false;
+            }
+
+            // para mostrar en el DGV cuenta corriente
+            //if (dgvCliente.Columns["CuentaCorriente"] != null)
+            //{
+             //   dgvCliente.Columns["CuentaCorriente"].HeaderText = "Cuenta Corriente ($)";
+           // }
         }
 
         private void LimpiarFormulario()

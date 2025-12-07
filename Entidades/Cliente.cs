@@ -18,15 +18,17 @@ namespace Entidades
         
         public TipoCliente Tipo { get; set; }
         
+
+        public decimal CuentaCorriente { get; set; } = 0;
+
+        public virtual List<Venta> Compras { get; set; } = new List<Venta>();
+
         public enum TipoCliente
         {
             Minorista,
             Mayorista,
         }
 
-        public decimal CuentaCorriente { get; set; } = 0;
-
-        public virtual List<Venta> Compras { get; set; } = new List<Venta>();
-
     }
+
 }
